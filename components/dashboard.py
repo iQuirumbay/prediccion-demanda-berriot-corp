@@ -10,16 +10,20 @@ import streamlit as st
 #     st.dataframe(df, use_container_width=True)
 
 def render_dashboard(df):
-    with st.form("form_prediction"):
+    with st.container():
+        with st.form("form_prediction"):
+            
+            st.markdown("### 🔎Consulta de ítems")
+            st.markdown("---")
+            items_selected = []
+            items_selected = st.multiselect(
+                "Seleccione uno o más ítems",
+                sorted(df["ITEM"].unique())
+            )
         
-        st.markdown("### 🔎Consulta de ítems")
-        st.markdown("---")
-        items_selected = []
-        items_selected = st.multiselect(
-            "Seleccione uno o más ítems",
-            sorted(df["ITEM"].unique())
-        )
-    
-        items_validos = len(items_selected) > 0
-    
-        submit_button = st.form_submit_button(label="Ejecutar")
+            items_validos = len(items_selected) > 0
+        
+            submit_button = st.form_submit_button(label="Ejecutar")
+            
+
+    #with st.container():
