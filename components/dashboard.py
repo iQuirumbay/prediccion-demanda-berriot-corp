@@ -1,16 +1,15 @@
 # components/dashboard.py
-
+import io
 import streamlit as st
 import matplotlib.pyplot as plt
+import pandas as pd
 from src.etl.load import load_processed_dataset
+from services.pdf_generator import generate_pdf
 
 def render_dashboard(df):
     with st.container():
-        with st.form("form_prediction"):
-            
+        with st.form("form_prediction"):            
             st.markdown("### 🔎 Consulta de ítems")
-            st.markdown("---")
-
             items_selected = st.multiselect(
                 "Seleccione uno o más ítems",
                 sorted(df["ITEM"].unique())
@@ -110,5 +109,30 @@ def render_results(results_df, requisitions_df):
     if not requisitions_df.empty:
         st.warning("⚠ Ítems que requieren reposición")
         st.dataframe(requisitions_df)
+        if not requisitions_df.empty:
+            st.markdown("### 📥 Descargar Órdenes")
+            col1, col2 = st.columns(2)
+        # ---- EXCEL ----
+        with col1:
+            buffer = io.BytesIO()
+
+            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+                requisitions_df.to_excel(writer, index=False, sheet_name="Ordenes")
+
+            st.download_button(
+                label="⬇ Descargar en Excel",
+                data=buffer.getvalue(),
+                file_name="ordenes_requisicion.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        with col2:
+            pdf_buffer = generate_pdf(requisitions_df)
+            st.download_button(
+                label="⬇ Descargar en PDF",
+                data=pdf_buffer,
+                file_name="ordenes_requisicion.pdf",
+                mime="application/pdf"
+            )
     else:
         st.success("No se requieren reposiciones.")
+
