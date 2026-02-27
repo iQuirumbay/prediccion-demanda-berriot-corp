@@ -4,6 +4,7 @@ import streamlit as st
 from PIL import Image
 from services.file_loader import load_file, clean_data
 from services.validators import validate_file_type, validate_structure
+from services.prediction_pipeline import run_prediction_pipeline
 from components.sidebar import render_sidebar, render_sidebar_preview
 from components.dashboard import render_dashboard
 # ======================================================
@@ -74,7 +75,26 @@ if uploaded_file:
     # Renderizar el SideBoard Preview
     render_sidebar_preview(df)
 
-    render_dashboard(df)
+    submit_button, items_selected = render_dashboard(df)
+    
+    if submit_button and items_selected:
+
+        results_df, requisitions_df = run_prediction_pipeline(
+            df_user=df,
+            items_selected=items_selected
+        )
+
+    st.markdown("## 📊 Resultados")
+
+    st.dataframe(results_df, use_container_width=True)
+
+    st.markdown("## 🛒 Órdenes sugeridas")
+
+    if not requisitions_df.empty:
+        st.warning("⚠ Ítems que requieren reposición")
+        st.dataframe(requisitions_df)
+    else:
+        st.success("No se requieren reposiciones.")
 
 else:
     st.info("📂 Cargue un archivo para comenzar.")
