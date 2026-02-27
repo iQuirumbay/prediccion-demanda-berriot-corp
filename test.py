@@ -6,7 +6,7 @@ from services.file_loader import load_file, clean_data
 from services.validators import validate_file_type, validate_structure
 from services.prediction_pipeline import run_prediction_pipeline
 from components.sidebar import render_sidebar, render_sidebar_preview
-from components.dashboard import render_dashboard
+from components.dashboard import render_dashboard, render_results
 # ======================================================
 # CONFIGURACIÓN GENERAL
 # ======================================================
@@ -76,25 +76,29 @@ if uploaded_file:
     render_sidebar_preview(df)
 
     submit_button, items_selected = render_dashboard(df)
-    
+
     if submit_button and items_selected:
+
+        from services.prediction_pipeline import run_prediction_pipeline
 
         results_df, requisitions_df = run_prediction_pipeline(
             df_user=df,
             items_selected=items_selected
         )
 
-    st.markdown("## 📊 Resultados")
+    render_results(results_df, requisitions_df)
 
-    st.dataframe(results_df, use_container_width=True)
+    #st.markdown("## 📊 Resultados")
 
-    st.markdown("## 🛒 Órdenes sugeridas")
+   # st.dataframe(results_df, use_container_width=True)
 
-    if not requisitions_df.empty:
-        st.warning("⚠ Ítems que requieren reposición")
-        st.dataframe(requisitions_df)
-    else:
-        st.success("No se requieren reposiciones.")
+    #st.markdown("## 🛒 Órdenes sugeridas")
+
+    #if not requisitions_df.empty:
+     #   st.warning("⚠ Ítems que requieren reposición")
+      #  st.dataframe(requisitions_df)
+    #else:
+     #   st.success("No se requieren reposiciones.")
 
 else:
     st.info("📂 Cargue un archivo para comenzar.")

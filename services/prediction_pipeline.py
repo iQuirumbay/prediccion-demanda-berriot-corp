@@ -1,7 +1,8 @@
 # services/prediction_pipeline.py
 
+import streamlit as st
 import pandas as pd
-
+import joblib
 from src.etl.load import load_processed_dataset
 from src.prediction.predictor import predict_demand
 from src.prediction.metrics import load_item_error
@@ -14,11 +15,19 @@ from src.requisition.generator import generate_requisition_orders
 
 def run_prediction_pipeline(df_user: pd.DataFrame, items_selected: list):
 
-    df_hist = load_processed_dataset("data/processed/df_model.csv")
-    error_df = load_item_error()
+    model, feature_columns = load_model_and_features()
+    df_hist = load_hist_dataset()
+    error_df = load_error_dataset()
 
     results = []
 
+    stock_map = dict(zip(df_user["ITEM"], df_user["STOCK_ACTUAL"]))
+    items_hist = set(df_hist["ITEM"].unique())
+    invalid_items = [i for i in items_selected if i not in items_hist]
+
+    if invalid_items:
+        st.warning(f"Los siguientes ítems no existen en histórico: {invalid_items}")
+    
     for item in items_selected:
 
         df_item = df_hist[df_hist["ITEM"] == item].copy()
@@ -32,18 +41,12 @@ def run_prediction_pipeline(df_user: pd.DataFrame, items_selected: list):
         stock_minimo = float(df_item["STOCK_MINIMO"].iloc[-1])
 
         # 👇 Ahora el stock viene del CSV usuario
-        stock_actual = float(
-            df_user[df_user["ITEM"] == item]["STOCK_ACTUAL"].iloc[0]
-        )
+        stock_actual = float(stock_map[item])
 
-        predicted_demand = float(predict_demand(df_item))
+        predicted_demand = predict_demand(df_item, model, feature_columns)
 
         error_item = error_df[error_df["CODITEM"] == coditem]
-        error_medio = (
-            float(error_item["ERROR_MEDIO"].iloc[0])
-            if not error_item.empty
-            else 0
-        )
+        error_medio = float(error_item["ERROR_MEDIO"].iloc[0]) if not error_item.empty else 0.0
 
         confianza, icono = compute_confidence(predicted_demand, error_medio)
 
@@ -82,3 +85,19 @@ def run_prediction_pipeline(df_user: pd.DataFrame, items_selected: list):
     requisitions_df = generate_requisition_orders(results_df)
 
     return results_df, requisitions_df
+
+@st.cache_resource
+def load_model_and_features():
+    model = joblib.load("models/modelo_demanda_rf.pkl")
+    feature_columns = joblib.load("models/feature_columns.pkl")
+    return model, feature_columns
+
+
+@st.cache_data
+def load_hist_dataset():
+    return load_processed_dataset("data/processed/df_model.csv")
+
+
+@st.cache_data
+def load_error_dataset():
+    return load_item_error()
