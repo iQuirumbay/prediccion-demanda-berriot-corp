@@ -3,6 +3,7 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import numpy as np
 from src.etl.load import load_processed_dataset
 from src.prediction.predictor import predict_demand
 from src.prediction.metrics import load_item_error
@@ -81,8 +82,20 @@ def run_prediction_pipeline(df_user: pd.DataFrame, items_selected: list):
             **rules
         })
 
+    cols_to_round_kpi =[
+        "DEMANDA_PREDICHA",
+        "DEMANDA_MIN",
+        "DEMANDA_MAX",
+        "ERROR_HISTORICO",
+        "STOCK_ACTUAL",
+        "STOCK_MINIMO",
+        "STOCK_SUGERIDO"
+    ]
+
     results_df = pd.DataFrame(results)
     requisitions_df = generate_requisition_orders(results_df)
+    
+    results_df[cols_to_round_kpi] = np.ceil(results_df[cols_to_round_kpi]).astype(int)
 
     return results_df, requisitions_df
 

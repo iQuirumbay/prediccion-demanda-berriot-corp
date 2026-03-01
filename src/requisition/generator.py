@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 def generate_requisition_orders(results_df: pd.DataFrame) -> pd.DataFrame:
@@ -19,5 +20,9 @@ def generate_requisition_orders(results_df: pd.DataFrame) -> pd.DataFrame:
                 "STOCK MINIMO": row["STOCK_MINIMO"],
                 "CANTIDAD A REPONER": row["quantity_to_order"],
             })
-
-    return pd.DataFrame(requisitions)
+            
+    df_req = pd.DataFrame(requisitions)
+    numeric_cols = df_req.select_dtypes(include=["number"]).columns
+    df_req[numeric_cols] = np.ceil(df_req[numeric_cols]).astype(int)
+    
+    return df_req
